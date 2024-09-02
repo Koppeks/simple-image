@@ -5,6 +5,14 @@ import './index.css';
 
 import { IconAddBorder, IconStretch, IconAddBackground } from '@codexteam/icons';
 
+import type {
+  API,
+  FilePasteEvent,
+  HTMLPasteEvent,
+  PasteEvent,
+  PatternPasteEvent
+} from "@editorjs/editorjs"
+
 /**
  * SimpleImage Tool for the Editor.js
  * Works only with pasted image URLs and requires no server-side uploader.
@@ -17,17 +25,71 @@ import { IconAddBorder, IconStretch, IconAddBackground } from '@codexteam/icons'
  * @property {boolean} withBackground - should image be rendered with background
  * @property {boolean} stretched - should image be stretched to full width of container
  */
+
+export interface SimpleImageData {
+  //image URL
+  url: string;
+  //image caption
+  caption?: string;
+  //should image be rendered with border
+  withBorder?: boolean;
+  //should image be rendered with background
+  withBackground?: boolean;
+  //should image be stretched to full width of container
+  stretched?: boolean;
+}
+
+interface SimpleImageParams {
+  dataImage: SimpleImageData;
+  config:object;
+  api: API;
+  readOnly: boolean;
+}
+
+interface SimpleImageCSS {
+    baseClass:string,
+    loading: string,
+    input:string,
+    /**
+     * Tool's classes
+     */
+    wrapper: string,
+    imageHolder: string,
+    caption: string,
+}
+
 export default class SimpleImage {
   /**
    * Render plugin`s main Element and fill it with saved data
    *
-   * @param {{data: SimpleImageData, config: object, api: object}}
-   *   data — previously saved data
+   * @param {{dataImage: SimpleImageData, config: object, api: object}}
+   *   dataImage — previously saved data
    *   config - user config for Tool
    *   api - Editor.js API
    *   readOnly - read-only mode flag
    */
-  constructor({ data, config, api, readOnly }) {
+
+  // api - Editor.js API
+  private api: API;
+  // readOnly - read-only mode flag
+  private readOnly: boolean;
+  private blockIndex: number;
+  // dataImage — previously saved data
+  private dataImage: SimpleImageData;
+  private CSS: SimpleImageCSS
+  private nodes: {
+    wrapper: HTMLElement | null;
+    imageHolder: HTMLElement | null;
+    image: HTMLElement | null;
+    caption: HTMLElement | null;
+  }
+  private tunes: {
+    name: string;
+    label: string;
+    icon: any;
+  }[];
+
+  constructor({ dataImage, config, api, readOnly }:SimpleImageParams) {
     /**
      * Editor.js API
      */
@@ -73,12 +135,12 @@ export default class SimpleImage {
     /**
      * Tool's initial data
      */
-    this.data = {
-      url: data.url || '',
-      caption: data.caption || '',
-      withBorder: data.withBorder !== undefined ? data.withBorder : false,
-      withBackground: data.withBackground !== undefined ? data.withBackground : false,
-      stretched: data.stretched !== undefined ? data.stretched : false,
+    this.dataImage = {
+      url: dataImage.url || '',
+      caption: dataImage.caption || '',
+      withBorder: dataImage.withBorder !== undefined ? dataImage.withBorder : false,
+      withBackground: dataImage.withBackground !== undefined ? dataImage.withBackground : false,
+      stretched: dataImage.stretched !== undefined ? dataImage.stretched : false,
     };
 
     /**
@@ -112,14 +174,15 @@ export default class SimpleImage {
    * @public
    */
   render() {
-    const wrapper = this._make('div', [this.CSS.baseClass, this.CSS.wrapper]),
-        loader = this._make('div', this.CSS.loading),
-        imageHolder = this._make('div', this.CSS.imageHolder),
-        image = this._make('img'),
+    
+    const wrapper = this._make('div',[this.CSS.baseClass, this.CSS.wrapper]) as HTMLElement,
+        loader = this._make('div', this.CSS.loading) as HTMLElement,
+        imageHolder = this._make('div', this.CSS.imageHolder) as HTMLElement,
+        image = this._make('img') as HTMLImageElement,
         caption = this._make('div', [this.CSS.input, this.CSS.caption], {
           contentEditable: !this.readOnly,
           innerHTML: this.data.caption || '',
-        });
+        }) as HTMLElement;
 
     caption.dataset.placeholder = 'Enter a caption';
 
@@ -156,7 +219,7 @@ export default class SimpleImage {
    * @param {Element} blockContent - Tool's wrapper
    * @returns {SimpleImageData}
    */
-  save(blockContent) {
+  save(blockContent: Element): SimpleImageData {
     const image = blockContent.querySelector('img'),
         caption = blockContent.querySelector('.' + this.CSS.input);
 
@@ -166,7 +229,7 @@ export default class SimpleImage {
 
     return Object.assign(this.data, {
       url: image.src,
-      caption: caption.innerHTML,
+      caption: caption?.innerHTML || "",
     });
   }
 
@@ -190,7 +253,7 @@ export default class SimpleImage {
    *
    * @returns {boolean}
    */
-  static get isReadOnlySupported() {
+  static get isReadOnlySupported(): boolean {
     return true;
   }
 
@@ -201,18 +264,28 @@ export default class SimpleImage {
    * @param {File} file
    * @returns {Promise<SimpleImageData>}
    */
-  onDropHandler(file) {
+  onDropHandler(file: File): Promise<SimpleImageData> {
     const reader = new FileReader();
 
     reader.readAsDataURL(file);
 
-    return new Promise(resolve => {
+    return new Promise<SimpleImageData>((resolve, reject) => {
       reader.onload = (event) => {
-        resolve({
-          url: event.target.result,
-          caption: file.name,
-        });
+        const target = event.target;
+
+        //Make sure the target is not null and is a string
+        if(target && typeof target.result === "string"){
+          resolve({
+            url: target.result,
+            caption: file.name,
+          });
+        }else{
+          reject(new Error("FileReader result is not valid"))
+        }
       };
+      reader.onerror = () => {
+        reject(new Error("Failed to read the file"))
+      }
     });
   }
 
@@ -221,11 +294,11 @@ export default class SimpleImage {
    *
    * @param {PasteEvent} event - event with pasted config
    */
-  onPaste(event) {
+  onPaste(event: PasteEvent) {
     switch (event.type) {
       case 'tag': {
         const img = event.detail.data;
-
+ 
         this.data = {
           url: img.src,
         };
@@ -259,7 +332,7 @@ export default class SimpleImage {
    *
    * @returns {SimpleImageData}
    */
-  get data() {
+  get data(): SimpleImageData {
     return this._data;
   }
 
@@ -325,7 +398,9 @@ export default class SimpleImage {
    * @param  {object} attributes        - any attributes
    * @returns {Element}
    */
-  _make(tagName, classNames = null, attributes = {}) {
+
+
+  _make(tagName: string, classNames?: string[] | string, attributes: object = {}): HTMLElement | HTMLImageElement{
     const el = document.createElement(tagName);
 
     if (Array.isArray(classNames)) {
@@ -337,8 +412,7 @@ export default class SimpleImage {
     for (const attrName in attributes) {
       el[attrName] = attributes[attrName];
     }
-
-    return el;
+    return el
   }
 
   /**
