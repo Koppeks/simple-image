@@ -27,15 +27,10 @@ import type {
  */
 
 export interface SimpleImageData {
-  //image URL
   url: string;
-  //image caption
   caption: string;
-  //should image be rendered with border
   withBorder?: boolean;
-  //should image be rendered with background
   withBackground?: boolean;
-  //should image be stretched to full width of container
   stretched?: boolean;
 }
 
@@ -58,6 +53,18 @@ interface SimpleImageCSS {
     caption: string,
 }
 
+interface tune {
+  name: string;
+  label: string;
+  icon: any;
+}
+interface nodes {
+  wrapper: HTMLElement | null;
+  imageHolder: HTMLElement | null;
+  image: HTMLImageElement | null;
+  caption: HTMLElement | null;
+}
+
 export default class SimpleImage {
   /**
    * Render plugin`s main Element and fill it with saved data
@@ -76,18 +83,9 @@ export default class SimpleImage {
   private readOnly: boolean;
   private blockIndex: number;
   private dataImage: SimpleImageData;
-  private CSS: SimpleImageCSS
-  private nodes: {
-    wrapper: HTMLElement | null;
-    imageHolder: HTMLElement | null;
-    image: HTMLImageElement | null;
-    caption: HTMLElement | null;
-  }
-  private tunes: {
-    name: string;
-    label: string;
-    icon: any;
-  }[];
+  private CSS: SimpleImageCSS;
+  private nodes: nodes;
+  private tunes: tune[];
 
   constructor({ dataImage, config, api, readOnly }:SimpleImageParams) {
     /**
@@ -378,7 +376,7 @@ export default class SimpleImage {
    *
    * @returns {Array}
    */
-  renderSettings() {
+  renderSettings(): Array<any> {
     return this.tunes.map(tune => ({
       ...tune,
       label: this.api.i18n.t(tune.label),
@@ -419,10 +417,11 @@ export default class SimpleImage {
    * @private
    * @param tune
    */
-  _toggleTune(tune) {
+  _toggleTune(tune:string) {
     this.data[tune] = !this.data[tune];
     this._acceptTuneView();
   }
+
 
   /**
    * Add specified class corresponds with activated tunes
@@ -431,8 +430,9 @@ export default class SimpleImage {
    */
   _acceptTuneView() {
     this.tunes.forEach(tune => {
-      this.nodes.imageHolder.classList.toggle(this.CSS.imageHolder + '--' + tune.name.replace(/([A-Z])/g, (g) => `-${g[0].toLowerCase()}`), !!this.data[tune.name]);
-
+      if(this.nodes.imageHolder){
+        this.nodes.imageHolder.classList.toggle(this.CSS.imageHolder + '--' + tune.name.replace(/([A-Z])/g, (g) => `-${g[0].toLowerCase()}`), !!this.data[tune.name]);
+      }
       if (tune.name === 'stretched') {
         this.api.blocks.stretchBlock(this.blockIndex, !!this.data.stretched);
       }
