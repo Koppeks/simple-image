@@ -30,7 +30,7 @@ export interface SimpleImageData {
   //image URL
   url: string;
   //image caption
-  caption?: string;
+  caption: string;
   //should image be rendered with border
   withBorder?: boolean;
   //should image be rendered with background
@@ -69,18 +69,18 @@ export default class SimpleImage {
    *   readOnly - read-only mode flag
    */
 
-  // api - Editor.js API
+  /**
+   * Create all private the necesary class properties
+   */
   private api: API;
-  // readOnly - read-only mode flag
   private readOnly: boolean;
   private blockIndex: number;
-  // dataImage — previously saved data
   private dataImage: SimpleImageData;
   private CSS: SimpleImageCSS
   private nodes: {
     wrapper: HTMLElement | null;
     imageHolder: HTMLElement | null;
-    image: HTMLElement | null;
+    image: HTMLImageElement | null;
     caption: HTMLElement | null;
   }
   private tunes: {
@@ -174,7 +174,9 @@ export default class SimpleImage {
    * @public
    */
   render() {
-    
+    /**
+     * Specific return as on each of the _make
+     */
     const wrapper = this._make('div',[this.CSS.baseClass, this.CSS.wrapper]) as HTMLElement,
         loader = this._make('div', this.CSS.loading) as HTMLElement,
         imageHolder = this._make('div', this.CSS.imageHolder) as HTMLElement,
@@ -269,22 +271,15 @@ export default class SimpleImage {
 
     reader.readAsDataURL(file);
 
-    return new Promise<SimpleImageData>((resolve, reject) => {
+    return new Promise<SimpleImageData>((resolve) => {
       reader.onload = (event) => {
         const target = event.target;
-
-        //Make sure the target is not null and is a string
         if(target && typeof target.result === "string"){
           resolve({
             url: target.result,
             caption: file.name,
           });
-        }else{
-          reject(new Error("FileReader result is not valid"))
         }
-      };
-      reader.onerror = () => {
-        reject(new Error("Failed to read the file"))
       }
     });
   }
@@ -297,25 +292,28 @@ export default class SimpleImage {
   onPaste(event: PasteEvent) {
     switch (event.type) {
       case 'tag': {
-        const img = event.detail.data;
- 
-        this.data = {
-          url: img.src,
-        };
+        const img = (event as HTMLPasteEvent).detail.data;
+        if (img instanceof HTMLImageElement) {
+          this.data = {
+            url: img.src
+          } as SimpleImageData;
+        } else {
+          console.error("Pasted element is not an image.");
+        }
         break;
       }
 
       case 'pattern': {
-        const { data: text } = event.detail;
+        const { data: text } = (event as PatternPasteEvent).detail;
 
         this.data = {
-          url: text,
-        };
+          url: text
+        } as SimpleImageData;
         break;
       }
 
       case 'file': {
-        const { file } = event.detail;
+        const { file } = (event as FilePasteEvent).detail;
 
         this.onDropHandler(file)
           .then(data => {
@@ -333,7 +331,7 @@ export default class SimpleImage {
    * @returns {SimpleImageData}
    */
   get data(): SimpleImageData {
-    return this._data;
+    return this.dataImage;
   }
 
   /**
@@ -341,8 +339,8 @@ export default class SimpleImage {
    *
    * @param {SimpleImageData} data
    */
-  set data(data) {
-    this._data = Object.assign({}, this.data, data);
+  set data(data: SimpleImageData) {
+    this.dataImage = Object.assign({}, this.data, data);
 
     if (this.nodes.image) {
       this.nodes.image.src = this.data.url;
