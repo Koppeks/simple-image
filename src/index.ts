@@ -87,7 +87,7 @@ interface SimpleImageCSS {
 /**
  * Represents a single tune option for the tool
  */
-interface tune {
+interface Tune {
   /**
    * The name of the tune
    */
@@ -105,7 +105,7 @@ interface tune {
 /**
  * Represents the nodes (HTML elements) used in the tool
  */
-interface nodes {
+interface Nodes {
   /**
    * The main wrapper element for the tool
    */
@@ -122,6 +122,32 @@ interface nodes {
    * The element used for displaying the image caption
    */
   caption: HTMLElement | null;
+}
+
+/**
+ * Returns image tunes config
+ */
+interface TuneSetting {
+  /**
+   * Name of the tune setting
+   */
+  name: string;
+  /**
+   * Label of the tune setting
+   */
+  label: string;
+  /**
+   * Toogle tune
+   */
+  toggle: boolean;
+  /**
+   * Function that will run on activate
+   */
+  onActivate: () => void;
+  /**
+   * Property that will set if tune setting is active
+   */
+  isActive: boolean;
 }
 
 export default class SimpleImage {
@@ -152,11 +178,11 @@ export default class SimpleImage {
   /**
    * Nodes cache
    */
-  private nodes: nodes;
+  private nodes: Nodes;
   /**
    * Represents an array of tunes
    */
-  private tunes: tune[];
+  private tunes: Tune[];
   
 
   constructor({ data, config, api, readOnly }:SimpleImageParams) {
@@ -344,8 +370,8 @@ export default class SimpleImage {
 
     return new Promise<SimpleImageData>((resolve) => {
       reader.onload = (event) => {
-        const target = event.target;
-        if(target && typeof target.result === "string"){
+        const target = event.target as FileReader;
+        if(typeof target.result === "string"){
           resolve({
             url: target.result,
             caption: file.name,
@@ -368,8 +394,6 @@ export default class SimpleImage {
           this.data = {
             url: img.src
           } as SimpleImageData;
-        } else {
-          console.error("Pasted element is not an image.");
         }
         break;
       }
@@ -444,12 +468,7 @@ export default class SimpleImage {
     };
   }
 
-  /**
-   * Returns image tunes config
-   *
-   * @returns {Array}
-   */
-  renderSettings(): Array<any> {
+  renderSettings(): Array<TuneSetting> {
     return this.tunes.map(tune => ({
       ...tune,
       label: this.api.i18n.t(tune.label),
