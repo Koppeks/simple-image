@@ -16,32 +16,63 @@ import type {
 /**
  * SimpleImage Tool for the Editor.js
  * Works only with pasted image URLs and requires no server-side uploader.
- *
- * @typedef {object} SimpleImageData
- * @description Tool's input and output data format
- * @property {string} url — image URL
- * @property {string} caption — image caption
- * @property {boolean} withBorder - should image be rendered with border
- * @property {boolean} withBackground - should image be rendered with background
- * @property {boolean} stretched - should image be stretched to full width of container
  */
 
+/**
+ * Tool's input and output data format
+ */
 export interface SimpleImageData {
+  /**
+   * image URL
+   */
   url: string;
+  /**
+   * image caption
+   */
   caption: string;
+  /**
+   * should image be rendered with border
+   */
   withBorder?: boolean;
+  /**
+   * should image be rendered with background
+   */
   withBackground?: boolean;
+  /**
+   * should image be stretched to full width of container
+   */
   stretched?: boolean;
 }
 
+/**
+ * Represents the parameters used on the constructor inside the SimpleImage class
+ */
 interface SimpleImageParams {
-  dataImage: SimpleImageData;
+  /**
+   * previously saved data
+   */
+  data: SimpleImageData;
+  /**
+   * user config for Tool
+   */
   config:object;
+  /**
+   * Editor.js API
+   */
   api: API;
+  /**
+   * read-only mode flag
+   */
   readOnly: boolean;
 }
 
+/**
+ * Represents the styles and tools of a image
+ */
 interface SimpleImageCSS {
+    /**
+     * Styles
+     */
     baseClass:string,
     loading: string,
     input:string,
@@ -53,45 +84,89 @@ interface SimpleImageCSS {
     caption: string,
 }
 
+/**
+ * Represents a single tune option for the tool
+ */
 interface tune {
+  /**
+   * The name of the tune
+   */
   name: string;
-  label: string;
+  /**
+   * The label displayed
+  */
+ label: string;
+ /**
+  * The icon representing the tune, can be any type
+  */
   icon: any;
 }
+
+/**
+ * Represents the nodes (HTML elements) used in the tool
+ */
 interface nodes {
+  /**
+   * The main wrapper element for the tool
+   */
   wrapper: HTMLElement | null;
+  /**
+   * The container element for holding the image
+   */
   imageHolder: HTMLElement | null;
+  /**
+   * The image element
+   */
   image: HTMLImageElement | null;
+  /**
+   * The element used for displaying the image caption
+   */
   caption: HTMLElement | null;
 }
 
 export default class SimpleImage {
   /**
    * Render plugin`s main Element and fill it with saved data
-   *
-   * @param {{dataImage: SimpleImageData, config: object, api: object}}
-   *   dataImage — previously saved data
-   *   config - user config for Tool
-   *   api - Editor.js API
-   *   readOnly - read-only mode flag
    */
 
   /**
-   * Create all private the necesary class properties
+   * Editor.js API instance
    */
   private api: API;
+  /**
+   * Flag indicating read-only mode
+   */
   private readOnly: boolean;
+  /**
+   * The index of the current block in the editor
+   */
   private blockIndex: number;
-  private dataImage: SimpleImageData;
+  /**
+   * Stores current block data internally
+   */
+  private _data: SimpleImageData;
+  /**
+   * CSS classes used for styling the tool
+   */
   private CSS: SimpleImageCSS;
+  /**
+   * Nodes cache
+   */
   private nodes: nodes;
+  /**
+   * Represents an array of tunes
+   */
   private tunes: tune[];
+  
 
-  constructor({ dataImage, config, api, readOnly }:SimpleImageParams) {
+  constructor({ data, config, api, readOnly }:SimpleImageParams) {
     /**
-     * Editor.js API
+     * Editor.js API 
      */
     this.api = api;
+    /**
+     * Read-only mode
+     */
     this.readOnly = readOnly;
 
     /**
@@ -100,7 +175,6 @@ export default class SimpleImage {
      * So real block index will be +1 after rendering
      *
      * @todo place it at the `rendered` event hook to get real block index without +1;
-     * @type {number}
      */
     this.blockIndex = this.api.blocks.getCurrentBlockIndex() + 1;
 
@@ -111,7 +185,6 @@ export default class SimpleImage {
       baseClass: this.api.styles.block,
       loading: this.api.styles.loader,
       input: this.api.styles.input,
-
       /**
        * Tool's classes
        */
@@ -133,12 +206,12 @@ export default class SimpleImage {
     /**
      * Tool's initial data
      */
-    this.dataImage = {
-      url: dataImage.url || '',
-      caption: dataImage.caption || '',
-      withBorder: dataImage.withBorder !== undefined ? dataImage.withBorder : false,
-      withBackground: dataImage.withBackground !== undefined ? dataImage.withBackground : false,
-      stretched: dataImage.stretched !== undefined ? dataImage.stretched : false,
+    this.data = {
+      url: data.url || '',
+      caption: data.caption || '',
+      withBorder: data.withBorder !== undefined ? data.withBorder : false,
+      withBackground: data.withBackground !== undefined ? data.withBackground : false,
+      stretched: data.stretched !== undefined ? data.stretched : false,
     };
 
     /**
@@ -329,7 +402,7 @@ export default class SimpleImage {
    * @returns {SimpleImageData}
    */
   get data(): SimpleImageData {
-    return this.dataImage;
+    return this._data;
   }
 
   /**
@@ -338,7 +411,7 @@ export default class SimpleImage {
    * @param {SimpleImageData} data
    */
   set data(data: SimpleImageData) {
-    this.dataImage = Object.assign({}, this.data, data);
+    this._data = Object.assign({}, this.data, data);
 
     if (this.nodes.image) {
       this.nodes.image.src = this.data.url;
