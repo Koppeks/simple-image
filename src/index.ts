@@ -5,13 +5,7 @@ import './index.css';
 
 import { IconAddBorder, IconStretch, IconAddBackground } from '@codexteam/icons';
 
-import type {
-  API,
-  FilePasteEvent,
-  HTMLPasteEvent,
-  PasteEvent,
-  PatternPasteEvent
-} from "@editorjs/editorjs"
+import type { API, FilePasteEvent, HTMLPasteEvent, PasteEvent, PatternPasteEvent } from "@editorjs/editorjs"
 
 /**
  * SimpleImage Tool for the Editor.js
@@ -71,16 +65,28 @@ interface SimpleImageParams {
  */
 interface SimpleImageCSS {
     /**
-     * Styles
+     * The base CSS class for the component, defining general styling for the entire element.
      */
     baseClass:string,
+    /**
+     * CSS class applied when the image or component is in a loading state.
+     */
     loading: string,
+    /**
+     * CSS class applied to the input element.
+     */
     input:string,
     /**
      * Tool's classes
      */
     wrapper: string,
+    /**
+     * Controlling the layout and appearance of the area where the image is displayed.
+     */
     imageHolder: string,
+    /**
+     * Defining styles for the text or label associated with the image.
+     */
     caption: string,
 }
 
@@ -185,7 +191,7 @@ export default class SimpleImage {
   private tunes: Tune[];
   
 
-  constructor({ data, config, api, readOnly }:SimpleImageParams) {
+  constructor({ data, config, api, readOnly }: SimpleImageParams) {
     /**
      * Editor.js API 
      */
@@ -500,7 +506,7 @@ export default class SimpleImage {
     for (const attrName in attributes) {
       el[attrName] = attributes[attrName];
     }
-    return el
+    return el;
   }
 
   /**
